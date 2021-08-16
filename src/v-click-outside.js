@@ -1,3 +1,4 @@
+//大写表示常量
 const HANDLERS_PROPERTY = '__v-click-outside'
 const HAS_WINDOWS = typeof window !== 'undefined'
 const HAS_NAVIGATOR = typeof navigator !== 'undefined'
@@ -6,7 +7,7 @@ const IS_TOUCH =
   ('ontouchstart' in window ||
     (HAS_NAVIGATOR && navigator.msMaxTouchPoints > 0))
 const EVENTS = IS_TOUCH ? ['touchstart'] : ['click']
-
+//类型判断
 function processDirectiveArguments(bindingValue) {
   const isFunction = typeof bindingValue === 'function'
   if (!isFunction && typeof bindingValue !== 'object') {
@@ -18,13 +19,13 @@ function processDirectiveArguments(bindingValue) {
   return {
     handler: isFunction ? bindingValue : bindingValue.handler,
     middleware: bindingValue.middleware || ((item) => item),
-    events: bindingValue.events || EVENTS,
+    events: bindingValue.events || EVENTS, //设置默认事件为click
     isActive: !(bindingValue.isActive === false),
     detectIframe: !(bindingValue.detectIframe === false),
     capture: !!bindingValue.capture,
   }
 }
-
+//handler 正常处理，middleware 执行中间件
 function execHandler({ event, handler, middleware }) {
   if (middleware(event)) {
     handler(event)
@@ -56,15 +57,22 @@ function onEvent({ el, event, handler, middleware }) {
   const isClickOutside = path
     ? path.indexOf(el) < 0
     : !el.contains(event.target)
-
+  //如果没有点击外面，不做任何操作
   if (!isClickOutside) {
     return
   }
 
   execHandler({ event, handler, middleware })
 }
-
+/**
+ *
+ *
+ * @param {*} el  直接操作的元素
+ * @param {*} bindingValue  绑定值, value 为一个配置对象{name 指令值,value 绑定值，expression 字符串，arg 参数}v-name.modifiers:arg=value
+ * 或者直接为一个函数
+ */
 function bind(el, { value }) {
+  //初始化值
   const {
     events,
     handler,
@@ -76,14 +84,15 @@ function bind(el, { value }) {
   if (!isActive) {
     return
   }
-
+  debugger
+//将事件记录到元素上
   el[HANDLERS_PROPERTY] = events.map((eventName) => ({
     event: eventName,
     srcTarget: document.documentElement,
     handler: (event) => onEvent({ el, event, handler, middleware }),
-    capture,
+    capture,//是否捕获阶段触发，默认为false
   }))
-
+  //iframe 处理
   if (detectIframe) {
     const detectIframeEvent = {
       event: 'blur',
@@ -94,7 +103,7 @@ function bind(el, { value }) {
 
     el[HANDLERS_PROPERTY] = [...el[HANDLERS_PROPERTY], detectIframeEvent]
   }
-
+  //绑定事件
   el[HANDLERS_PROPERTY].forEach(({ event, srcTarget, handler }) =>
     setTimeout(() => {
       // Note: More info about this implementation can be found here:
@@ -108,6 +117,7 @@ function bind(el, { value }) {
 }
 
 function unbind(el) {
+  //解绑事件
   const handlers = el[HANDLERS_PROPERTY] || []
   handlers.forEach(({ event, srcTarget, handler, capture }) =>
     srcTarget.removeEventListener(event, handler, capture),
@@ -119,6 +129,7 @@ function update(el, { value, oldValue }) {
   if (JSON.stringify(value) === JSON.stringify(oldValue)) {
     return
   }
+  //如果value变化重新执行
   unbind(el)
   bind(el, { value })
 }
@@ -128,5 +139,5 @@ const directive = {
   update,
   unbind,
 }
-
+//只适用浏览器环境
 export default HAS_WINDOWS ? directive : {}
